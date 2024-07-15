@@ -1,0 +1,5 @@
+# gpu_accelerator extension
+comment = 'use GPU to accelerate postgresql query execution'
+default_version = '1.0'
+module_pathname = '$libdir/gpu_accelerator'
+relocatable = false

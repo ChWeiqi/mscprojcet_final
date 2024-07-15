@@ -1,0 +1,63 @@
+# Compiler and other tools
+CUDA_PATH       ?= /d/MscProject/CUDAv12.2
+CUDA_INC_PATH   ?= $(CUDA_PATH)/include
+CUDA_BIN_PATH   ?= $(CUDA_PATH)/bin
+
+NVCC = nvcc
+RM = rm -f
+MKDIR = mkdir -p
+
+# For RTX 3090 (adjust as needed for your GPU)
+SM_TARGETS   = -gencode=arch=compute_86,code=\"sm_86,compute_86\" 
+SM_DEF     = -DSM860
+
+# Directories
+SRC = .
+OBJ_DIR = obj
+BIN_DIR = bin
+
+# Files
+CU_SRC := $(wildcard *.cu)
+CU_OBJ := $(patsubst %.cu,$(OBJ_DIR)/%.o,$(CU_SRC))
+EXECUTABLE = $(BIN_DIR)/tpch_q18
+
+# Headers
+HEADERS = $(wildcard *.h) $(wildcard *.hpp) $(wildcard *.cuh)
+
+# Flags
+NVCCFLAGS += --std=c++17 --expt-relaxed-constexpr --expt-extended-lambda --extended-lambda $(SM_DEF) -Xptxas="-v" -lineinfo -Xcudafe -\# 
+NVCCFLAGS += -D_CRT_SECURE_NO_WARNINGS -D_WIN32
+
+INCLUDES = -I. -I"$(CUDA_PATH)/include"
+
+# Targets
+.PHONY: all clean
+
+all: setup $(EXECUTABLE)
+
+# Linking stage
+$(EXECUTABLE): $(CU_OBJ) | $(BIN_DIR)
+	$(NVCC) $(SM_TARGETS) -Xlinker -lgomp $^ -o $@
+
+# Compile CUDA source files
+$(OBJ_DIR)/%.o: %.cu $(HEADERS) | $(OBJ_DIR)
+	$(NVCC) $(SM_TARGETS) $(NVCCFLAGS) $(INCLUDES) -O3 --compile $< -o $@
+
+# Create directories
+setup:
+	$(MKDIR) $(BIN_DIR)
+	$(MKDIR) $(OBJ_DIR)
+
+# Clean generated files
+clean:
+	$(RM) $(OBJ_DIR)/*
+	$(RM) $(BIN_DIR)/*
+
+# Include dependencies
+-include $(CU_OBJ:.o=.d)
+
+# Debug info
+$(info CU_SRC is $(CU_SRC))
+$(info CU_OBJ is $(CU_OBJ))
+$(info SHELL is $(SHELL))
+$(info CURDIR is $(CURDIR))
